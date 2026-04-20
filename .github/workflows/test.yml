@@ -1,0 +1,42 @@
+name: Run all tests
+
+on:
+  # Run for all pull requests
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Run all Tests"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      checks: write
+      packages: read
+
+    env:
+      BUILD_CONFIGURATION: Release
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # Install dotnet version according to global.json in root of repository
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: | 
+            10.0.x
+
+      - name: Run Tests (no parallelization)
+        run: dotnet test Repro.slnx --logger "trx" -f net10.0 -bl:tests.binlog
+        timeout-minutes: 10
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: all-test-results
+          path: |
+            **/*.trx
+            **/*.binlog
+            **/*.received.*
